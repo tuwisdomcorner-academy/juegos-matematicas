@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sucesos Aleatorios y Ley de Laplace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: '#0B1C3D',
+                        gold: '#D4AF37',
+                        goldhover: '#B5952F',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #f8fafc; color: #333; }
+        .btn-option { transition: all 0.2s ease-in-out; }
+        .btn-option:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .disabled-correct { background-color: #22c55e !important; color: white !important; border-color: #16a34a !important; }
+        .disabled-wrong { background-color: #ef4444 !important; color: white !important; border-color: #dc2626 !important; opacity: 0.7; }
+        .disabled-neutral { opacity: 0.5; cursor: not-allowed; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans">
+
+    <!-- Header / Nav -->
+    <header class="bg-navy text-white shadow-md p-4 flex justify-center items-center border-b-4 border-gold">
+        <div class="flex items-center gap-3">
+            <img src="Logo.png" alt="Wisdom Corner Academy" class="w-12 h-12 rounded-full border-2 border-gold bg-white object-contain p-1">
+            <h1 class="text-2xl font-bold tracking-wide">Wisdom Corner <span class="text-gold">Academy</span></h1>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow flex flex-col items-center p-6 relative">
+        
+        <!-- PANTALLA DE INICIO -->
+        <div id="home-screen" class="w-full max-w-2xl text-center mt-10 bg-white p-8 rounded-2xl shadow-xl border border-gray-200">
+            <img src="pensativo.png" onerror="this.src='https://placehold.co/120x120/0B1C3D/ffffff?text=?'" alt="Profesor Pensando" class="w-32 h-32 mx-auto rounded-full border-4 border-gold mb-6 shadow-lg object-cover bg-gray-50">
+            <h2 class="text-3xl font-extrabold text-navy mb-4">Sucesos Aleatorios y Ley de Laplace</h2>
+            <p class="text-gray-600 mb-8 text-lg">Selecciona tu nivel de dificultad para comenzar la práctica. Tienes 3 intentos por ejercicio.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <button onclick="startGame('facil')" class="bg-navy text-white py-4 px-6 rounded-xl font-bold text-xl hover:bg-opacity-90 border-b-4 border-gold hover:border-goldhover transition-all">
+                    Nivel Fácil
+                </button>
+                <button onclick="startGame('medio')" class="bg-navy text-white py-4 px-6 rounded-xl font-bold text-xl hover:bg-opacity-90 border-b-4 border-gold hover:border-goldhover transition-all">
+                    Nivel Medio
+                </button>
+                <button onclick="startGame('dificil')" class="bg-navy text-white py-4 px-6 rounded-xl font-bold text-xl hover:bg-opacity-90 border-b-4 border-gold hover:border-goldhover transition-all">
+                    Nivel Difícil
+                </button>
+            </div>
+        </div>
+
+        <!-- PANTALLA DE JUEGO -->
+        <div id="game-screen" class="hidden w-full max-w-3xl w-full flex flex-col gap-6">
+            
+            <!-- Top bar: Score and progress -->
+            <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-md border-t-4 border-gold">
+                <div>
+                    <p class="text-sm text-gray-500 font-semibold uppercase tracking-wider">Nivel <span id="level-display" class="text-navy"></span></p>
+                    <p class="text-lg font-bold text-navy">Ejercicio <span id="question-counter">1/20</span></p>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm text-gray-500 font-semibold uppercase tracking-wider">Aciertos</p>
+                    <p class="text-2xl font-bold text-gold" id="score-counter">0</p>
+                </div>
+            </div>
+
+            <!-- Question Area -->
+            <div class="bg-white p-6 md:p-8 rounded-xl shadow-md border border-gray-100">
+                <div class="flex justify-between items-start mb-6">
+                    <h3 id="question-text" class="text-xl md:text-2xl font-semibold text-navy leading-relaxed">¿Pregunta?</h3>
+                    <div class="flex flex-col items-center bg-gray-50 p-2 rounded-lg min-w-[80px]">
+                        <span class="text-xs font-bold text-gray-400 uppercase">Intentos</span>
+                        <span id="attempts-counter" class="text-xl font-bold text-navy">3</span>
+                    </div>
+                </div>
+
+                <!-- Options -->
+                <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <!-- Botones generados por JS -->
+                </div>
+
+                <!-- Feedback Area -->
+                <div id="feedback-area" class="hidden bg-gray-50 rounded-xl p-6 border-2 border-dashed border-gray-300 flex-col items-center text-center gap-4 transition-all">
+                    <div class="flex gap-4 justify-center items-center">
+                        <img id="avatar-primary" src="alegre.png" alt="Avatar" class="w-20 h-20 rounded-full border-4 shadow-sm">
+                        <img id="avatar-secondary" src="consejo.png" onerror="this.src='https://placehold.co/80x80/22c55e/ffffff?text=Tip'" alt="Consejo" class="hidden w-20 h-20 rounded-full border-4 border-gold shadow-sm">
+                    </div>
+                    <p id="feedback-text" class="text-lg font-medium text-gray-700"></p>
+                    <button id="next-btn" onclick="nextQuestion()" class="mt-2 bg-gold text-navy font-bold py-3 px-8 rounded-lg shadow hover:bg-goldhover transition-colors hidden">
+                        Continuar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PANTALLA FINAL -->
+        <div id="end-screen" class="hidden w-full max-w-2xl text-center mt-10 bg-white p-8 rounded-2xl shadow-xl border border-gray-200">
+            <h2 class="text-3xl font-extrabold text-navy mb-4">¡Módulo Completado!</h2>
+            <img src="alegre.png" onerror="this.src='https://placehold.co/100x100/D4AF37/0B1C3D?text=Fin'" alt="Feliz" class="w-32 h-32 mx-auto rounded-full border-4 border-gold mb-6 shadow-lg object-cover bg-white">
+            <p class="text-gray-600 mb-2 text-lg">Has finalizado todos los ejercicios de este nivel.</p>
+            <p class="text-2xl font-bold text-navy mb-8">Puntuación Final: <span id="final-score" class="text-gold text-4xl"></span> / 20</p>
+            
+            <button onclick="returnToHome()" class="bg-navy text-white py-3 px-8 rounded-xl font-bold text-xl hover:bg-opacity-90 border-b-4 border-gold transition-all">
+                Volver al Inicio
+            </button>
+        </div>
+
+    </main>
+
+    <script>
+        // ESTRICTO: 60 Ejercicios originales distribuidos en 3 niveles (20 cada uno).
+        const exercises = {
+            facil: [
+                { q: "Hugo va a lanzar un dado normal de seis caras. ¿Es esta una experiencia aleatoria o determinista?", options: ["Aleatoria", "Determinista", "Imposible", "Segura"], correct: 0, exp: "Es aleatoria porque el resultado depende del azar; no podemos predecir qué cara saldrá antes de lanzar el dado." },
+                { q: "Paula afirma que mañana amanecerá. ¿Qué tipo de experiencia es esta?", options: ["Aleatoria", "Determinista", "Elemental", "Incompatible"], correct: 1, exp: "Es determinista. No depende del azar, sabemos con total seguridad del 100% que ocurrirá." },
+                { q: "Mateo tiene una moneda de 1 euro. ¿Cuál es el espacio muestral al lanzarla?", options: ["{1 euro, 2 euros}", "{Cara, Cruz}", "{Cara}", "{Cara, Cruz, Canto}"], correct: 1, exp: "El espacio muestral agrupa todos los casos posibles. En una moneda convencional son siempre dos: E = {Cara, Cruz}." },
+                { q: "Elena saca sin mirar una bola de una urna que SOLO contiene 5 bolas rojas. ¿Cómo se llama este tipo de suceso?", options: ["Suceso aleatorio", "Suceso imposible", "Suceso seguro", "Suceso elemental"], correct: 2, exp: "Al haber únicamente bolas rojas, extraer una roja es un suceso seguro (probabilidad 1 o 100%)." },
+                { q: "Carlos lanza un dado de 6 caras. ¿Cuál es el suceso 'Sacar un número menor que 3'?", options: ["{1, 2, 3}", "{1, 2}", "{2, 3}", "{3}"], correct: 1, exp: "Los números estrictamente menores que 3 en un dado son el 1 y el 2. El espacio es {1, 2}." },
+                { q: "Ana quiere saber la probabilidad de sacar un 4 al lanzar un dado regular. ¿Cuál es?", options: ["1/6", "4/6", "1/4", "1/2"], correct: 0, exp: "Ley de Laplace: Casos favorables (solo hay un 4) / Casos posibles (6 caras) = 1/6." },
+                { q: "Luis lanza un dado de parchís. ¿Cuál es el suceso contrario a 'Sacar un número par'?", options: ["Sacar un 2", "Sacar un número impar", "Sacar un 6", "Sacar más de 3"], correct: 1, exp: "El suceso contrario abarca todo lo que NO cumple la condición. Lo contrario a par es impar {1, 3, 5}." },
+                { q: "Sara tiene una bolsa con 2 caramelos de fresa y 3 de limón. Probabilidad de sacar limón.", options: ["3/5", "2/5", "3/2", "1/5"], correct: 0, exp: "Casos totales = 5 (2+3). Casos favorables a limón = 3. Laplace: 3/5." },
+                { q: "Mario compra una rifa. Si hay 100 papeletas numeradas del 1 al 100 y él tiene la 45, ¿es aleatorio ganar?", options: ["No, es determinista", "Sí, es aleatorio", "No, es imposible", "Sí, es seguro"], correct: 1, exp: "Depende completamente del azar (el sorteo), por tanto es una experiencia aleatoria." },
+                { q: "Rosa tira una chincheta al aire para ver cómo cae. ¿Es una experiencia regular o irregular?", options: ["Regular, podemos usar Laplace", "Irregular, las opciones no son equiprobables", "Determinista", "Segura"], correct: 1, exp: "Es irregular. Caer de punta o de lado no tienen la misma probabilidad (no son equiprobables por la forma asimétrica)." },
+                { q: "Alejandro tiene una ruleta con 4 colores iguales: rojo, azul, verde, amarillo. Probabilidad de rojo:", options: ["1/4", "1/2", "1/3", "4/4"], correct: 0, exp: "Casos favorables (1 color rojo) / Casos posibles (4 colores en total) = 1/4." },
+                { q: "Sofía saca una carta de una baraja nueva española. ¿Todos los naipes tienen la misma probabilidad de salir?", options: ["No, los oros salen más", "Sí, es una experiencia regular", "No, los reyes pesan más", "Depende de quién baraje"], correct: 1, exp: "Al ser una baraja y coger sin mirar, cada carta tiene exactamente la misma probabilidad. Es un experimento regular." },
+                { q: "Diego lanza un dado de 6 caras. Probabilidad de sacar un 8.", options: ["1/8", "8/6", "0", "1/6"], correct: 2, exp: "Es un suceso imposible. No hay ningún número 8 en un dado de seis caras, así que P = 0/6 = 0." },
+                { q: "Lucía saca una bola de un bote con 10 bolas blancas. Probabilidad de sacar blanca:", options: ["1/10", "1 (100%)", "0", "5/10"], correct: 1, exp: "Como todas las bolas son blancas, los casos favorables coinciden con los posibles (10/10 = 1). Es un suceso seguro." },
+                { q: "Marcos tiene fichas numeradas del 1 al 5. El suceso 'Sacar el 3' es un suceso...", options: ["Compuesto", "Seguro", "Elemental", "Imposible"], correct: 2, exp: "Un suceso elemental es aquel que está formado por un único caso del espacio muestral (solo el 3)." },
+                { q: "Carmen gira una ruleta dividida en rojo y negro a partes iguales. Probabilidad de negro:", options: ["1/3", "2/2", "0.5 (1/2)", "0"], correct: 2, exp: "Hay 2 sectores iguales. Uno es negro. Casos favorables (1) / Casos posibles (2) = 1/2 o 0.5." },
+                { q: "Raúl escribe la palabra 'MATEMATICAS' y corta cada letra en un papel. Si saca uno, ¿cuál es el espacio muestral de letras distintas?", options: ["{M, A, T, E, I, C, S}", "{M, A, T}", "{M, A, T, E, M, A, T, I, C, A, S}", "{Vocales}"], correct: 0, exp: "El espacio muestral lista los posibles resultados únicos sin repetición: M, A, T, E, I, C, S." },
+                { q: "Irene lanza un dado. ¿Cuál es el suceso 'Sacar más de 6'?", options: ["{7, 8, 9}", "{0}", "Suceso imposible (conjunto vacío)", "{6}"], correct: 2, exp: "No hay números mayores a 6 en un dado normal, por lo que es un suceso imposible, no tiene elementos." },
+                { q: "Víctor lanza una moneda. ¿Cuál es el suceso contrario a salir Cara?", options: ["Salir Canto", "No jugar", "Salir Cruz", "Salir Cara y Cruz"], correct: 2, exp: "En una moneda, el único caso distinto a Cara en el espacio muestral es Cruz." },
+                { q: "Natalia tiene 4 globos rojos y 1 azul en una caja opaca. ¿Qué color es más probable sacar?", options: ["Azul", "Rojo", "Iguales", "No se puede saber"], correct: 1, exp: "Al haber mayor cantidad de globos rojos (4) que azules (1), la probabilidad de rojo (4/5) es mayor." }
+            ],
+            medio: [
+                { q: "Héctor saca una carta de una baraja española de 40 cartas. ¿Probabilidad de que sea un Rey?", options: ["1/40", "4/40 (1/10)", "12/40", "2/40"], correct: 1, exp: "La baraja española tiene 4 palos, por tanto hay 4 reyes. Casos favorables (4) / Posibles (40) = 4/40, que simplificado es 1/10." },
+                { q: "Julia tiene una urna con 3 bolas rojas, 2 verdes y 5 azules. ¿Probabilidad de sacar verde?", options: ["2/5", "2/10 (1/5)", "3/10", "1/2"], correct: 1, exp: "Total de bolas (casos posibles) = 3 + 2 + 5 = 10. Bolas verdes (favorables) = 2. Laplace = 2/10 = 1/5." },
+                { q: "Andrés tira un dado normal de 6 caras. ¿Probabilidad de sacar un número impar?", options: ["3/6 (1/2)", "1/3", "2/6", "4/6"], correct: 0, exp: "Los números impares en un dado son 1, 3 y 5 (3 casos). Total = 6. Laplace: 3/6 = 1/2." },
+                { q: "Celia saca una carta de la baraja española (40 cartas). ¿Cuál es el suceso contrario a 'Sacar Oros'?", options: ["Sacar Espadas", "Sacar Copas, Espadas o Bastos", "Sacar un Rey", "No sacar cartas"], correct: 1, exp: "El suceso contrario incluye TODOS los elementos que no están en el original. Si no es oro, debe ser Copa, Espada o Basto." },
+                { q: "Rubén lanza una chincheta 1000 veces; cae con la punta hacia arriba 650 veces. ¿Probabilidad estimada de punta arriba?", options: ["0.5", "1", "650/1000 (0.65)", "0.35"], correct: 2, exp: "En experiencias irregulares usamos la frecuencia estadística. P = 650/1000 = 0.65." },
+                { q: "Clara tiene 10 bolas numeradas del 1 al 10. ¿Probabilidad de sacar un múltiplo de 3?", options: ["1/10", "3/10", "4/10", "2/10"], correct: 1, exp: "Los múltiplos de 3 entre 1 y 10 son: 3, 6, 9 (3 casos favorables). Total de bolas = 10. P = 3/10." },
+                { q: "Óscar tiene una urna con 5 bolas negras y 5 blancas. Probabilidad de NO sacar blanca:", options: ["0", "1/2", "1/5", "1"], correct: 1, exp: "NO sacar blanca significa sacar negra. Hay 5 negras de un total de 10 bolas. P = 5/10 = 1/2." },
+                { q: "Blanca introduce en una bolsa las letras de la palabra 'PROBABILIDAD'. ¿Probabilidad de sacar una vocal?", options: ["5/12", "4/12", "6/12", "7/12"], correct: 0, exp: "PROBABILIDAD tiene 12 letras en total. Vocales: O, A, I, I, A (5 vocales). Casos favorables(5)/Total(12) = 5/12." },
+                { q: "Tomás gira una ruleta de 8 partes iguales. 3 son rojas, 4 blancas y 1 azul. Probabilidad de caer en roja:", options: ["3/8", "4/8", "1/8", "8/8"], correct: 0, exp: "Ley de Laplace directa: 3 partes rojas (favorables) entre 8 partes totales (posibles) = 3/8." },
+                { q: "Inés saca un As de una baraja española de 40 cartas. ¿Es una experiencia regular?", options: ["No, hay 4 ases.", "Sí, todas las cartas tienen la misma probabilidad.", "No, no son equiprobables.", "Solo si barajas mal."], correct: 1, exp: "Sí, es regular. Al extraer una carta al azar de una baraja normal, las 40 cartas tienen la misma probabilidad (1/40) de ser elegidas (equiprobables)." },
+                { q: "Jorge tiene en un cajón 4 calcetines azules y 6 negros. Coge uno al azar. ¿Probabilidad de sacar uno azul?", options: ["4/10 (2/5)", "6/10", "1/4", "1/6"], correct: 0, exp: "Casos totales = 4 + 6 = 10 calcetines. Favorables a azul = 4. Laplace = 4/10, que se simplifica a 2/5." },
+                { q: "Marta lanza un dado de 8 caras numeradas del 1 al 8. ¿Probabilidad de sacar un número primo?", options: ["4/8 (1/2)", "3/8", "5/8", "2/8"], correct: 0, exp: "Los primos entre 1 y 8 son: 2, 3, 5, 7. Son 4 casos favorables. Total = 8. P = 4/8 = 1/2. (Recuerda que el 1 no es primo)." },
+                { q: "Adrián saca una bola de una caja con 7 bolas rojas y 3 negras. Si antes saca 2 rojas y NO las devuelve, ¿probabilidad de sacar negra en el tercer intento?", options: ["3/10", "3/8", "7/10", "2/8"], correct: 1, exp: "Inicialmente había 10. Quitó 2 rojas. Quedan 8 bolas en total. De esas 8, las negras siguen siendo 3. Probabilidad = 3/8." },
+                { q: "Silvia pregunta: ¿Cuál es la suma de las probabilidades de todos los sucesos elementales de un experimento?", options: ["0", "0.5", "100", "1"], correct: 3, exp: "La suma de las probabilidades de todos los casos posibles (sucesos elementales) de un espacio muestral siempre es igual a 1 (100%)." },
+                { q: "Felipe tira dos monedas al mismo tiempo. ¿Cuál es el espacio muestral E?", options: ["{Cara, Cruz}", "{(C,C), (C,X), (X,C), (X,X)}", "{(C,C), (X,X)}", "{(C,X)}"], correct: 1, exp: "Al ser dos monedas, debemos combinar los resultados de ambas. El orden importa para contar casos: {(Cara,Cara), (Cara,Cruz), (Cruz,Cara), (Cruz,Cruz)}." },
+                { q: "Nuria tiene una baraja de 40 cartas. ¿Cuál es la probabilidad de sacar el Caballo de Bastos?", options: ["1/40", "4/40", "10/40", "1/4"], correct: 0, exp: "El Caballo de Bastos es una carta específica y única dentro de la baraja. Por tanto, Casos favorables (1) / Posibles (40) = 1/40." },
+                { q: "Pablo tiene 12 caramelos: 4 de menta y 8 de fresa. Probabilidad de NO sacar menta:", options: ["4/12", "8/12 (2/3)", "12/12", "0"], correct: 1, exp: "No sacar menta implica sacar fresa (8 casos favorables). Total = 12. P = 8/12 = 2/3." },
+                { q: "Lorena lanza un dado de 6 caras. Probabilidad de obtener un número mayor que 4:", options: ["1/6", "3/6", "2/6 (1/3)", "4/6"], correct: 2, exp: "Los números estrictamente mayores que 4 en el dado son el 5 y el 6. Son 2 casos favorables de 6. P = 2/6 = 1/3." },
+                { q: "Guillermo extrae un naipe de la baraja española (40). Probabilidad de que sea una figura (Sota, Caballo o Rey):", options: ["3/40", "12/40 (3/10)", "4/40", "10/40"], correct: 1, exp: "Cada palo (4 palos) tiene 3 figuras (Sota, Caballo, Rey). 4 x 3 = 12 figuras en total. P = 12/40 = 3/10." },
+                { q: "Raquel tiene una diana y el sector central ocupa 1/10 del área total. Al lanzar un dardo al azar a la diana, ¿probabilidad de acertar en el centro?", options: ["1/10", "1/9", "9/10", "Depende de su puntería"], correct: 0, exp: "Si el lanzamiento es puramente aleatorio y cubre toda la diana equiprobablemente (por áreas), la probabilidad coincide con la proporción del área: 1/10." }
+            ],
+            dificil: [
+                { q: "Jaime lanza DOS dados normales y suma sus resultados. ¿Cuántos elementos en total tiene el espacio muestral?", options: ["12", "36", "6", "24"], correct: 1, exp: "Para calcular el total combinamos cada cara del primer dado (6) con cada cara del segundo (6). 6 x 6 = 36 casos posibles." },
+                { q: "Alicia lanza dos dados normales. ¿Cuál es la probabilidad de que la suma sea 12?", options: ["1/12", "2/36", "1/36", "1/6"], correct: 2, exp: "El único caso donde la suma es 12 es sacando un 6 en el primer dado y un 6 en el segundo (6,6). Casos favorables (1) / Total (36) = 1/36." },
+                { q: "Iván lanza dos monedas a la vez. Probabilidad de sacar EXACTAMENTE una cara y una cruz.", options: ["1/4", "2/4 (1/2)", "1/2", "3/4"], correct: 1, exp: "Espacio: {(C,C), (C,X), (X,C), (X,X)}. Casos con una de cada son (C,X) y (X,C). 2 favorables de 4 totales. P = 2/4 = 1/2." },
+                { q: "Sonia saca una carta de una baraja (40). Probabilidad de sacar un As O un Oro.", options: ["14/40", "13/40", "10/40", "4/40"], correct: 1, exp: "Hay 4 ases y 10 oros. Sumaríamos 14, PERO el As de Oros lo hemos contado dos veces. Le restamos 1. Casos únicos = 13. P = 13/40." },
+                { q: "Roberto inspecciona bombillas. De 5000 fabricadas, 200 salen defectuosas. Si coge una al azar, probabilidad de que sea CORRECTA:", options: ["200/5000", "4800/5000 (24/25)", "1/5000", "0.9"], correct: 1, exp: "Bombillas correctas = 5000 - 200 = 4800. Probabilidad = 4800 / 5000 = 48/50 = 24/25 (0.96)." },
+                { q: "Teresa lanza dos dados. ¿Cuál es la probabilidad de que la suma de las caras sea 7?", options: ["6/36 (1/6)", "7/36", "5/36", "1/7"], correct: 0, exp: "Casos favorables para suma 7: (1,6), (2,5), (3,4), (4,3), (5,2), (6,1). Son 6 casos de 36 totales. P = 6/36 = 1/6." },
+                { q: "Samuel tiene 3 camisetas rojas, 2 azules y 1 blanca. Si saca dos a la vez al azar, ¿es un experimento regular?", options: ["Sí, todos los pares tienen igual probabilidad", "No, no se pueden usar matemáticas", "Sí, pero las camisetas individuales no", "No, unas salen más que otras"], correct: 0, exp: "Al sacar al azar, CADA COMBINACIÓN ESPECÍFICA de dos camisetas concretas tiene la misma probabilidad, por lo que a nivel de casos (pares) es equiprobable/regular." },
+                { q: "Marina lanza una moneda al aire 3 veces seguidas. ¿Cuántos casos posibles tiene el espacio muestral?", options: ["3", "6", "8", "9"], correct: 2, exp: "Por cada lanzamiento hay 2 opciones. Para 3 lanzamientos se multiplican las posibilidades: 2 x 2 x 2 = 8 casos posibles (CCC, CCX, CXC, etc)." },
+                { q: "Simón lanza dos dados y anota la puntuación del mayor (si son iguales, anota ese número). ¿Cuál es el espacio muestral de los resultados anotados?", options: ["{1,2,3,4,5,6}", "{2,3,4,5,6,7,8,9,10,11,12}", "{1,2,3,4,5,6,7,8,9,10,11,12}", "{2,3,4,5,6}"], correct: 0, exp: "Como anotas el valor de una cara (la mayor entre los dos dados), el resultado que apuntas en el papel solo puede ser un número del 1 al 6." },
+                { q: "Berta tiene una caja fuerte cuyo código es de 3 cifras (del 000 al 999). Si prueba uno al azar, ¿probabilidad de abrirla?", options: ["1/999", "1/100", "1/1000", "1/3"], correct: 2, exp: "Del 000 al 999 hay exactamente 1000 combinaciones posibles. Solo 1 es la correcta. P = 1/1000." },
+                { q: "Arturo extrae dos cartas de la baraja (40) SIN devolver la primera. Probabilidad de que la segunda sea Oro sabiendo que la primera NO lo fue:", options: ["10/40", "10/39", "9/39", "9/40"], correct: 1, exp: "Al no devolver la carta, quedan 39 en total. Como la primera no fue Oro, todos los 10 Oros siguen en la baraja. P = 10/39." },
+                { q: "Diana lanza dos dados. Probabilidad de que ambos números sean EXACTAMENTE IGUALES (ej. 1 y 1, 2 y 2):", options: ["1/36", "6/36 (1/6)", "2/36", "1/12"], correct: 1, exp: "Casos de dobles: (1,1), (2,2), (3,3), (4,4), (5,5), (6,6). Son 6 casos favorables sobre 36 posibles. P = 6/36 = 1/6." },
+                { q: "Fernando tiene urna A con 2 rojas y 1 azul. Urna B con 1 roja y 2 azules. Si elige urna al azar y saca bola, ¿es más probable sacar roja?", options: ["Sí, en A hay más", "No, en B hay más azules", "La probabilidad de sacar roja o azul es exactamente igual (0.5)", "Es imposible"], correct: 2, exp: "La probabilidad se equilibra. En total considerando ambas urnas equiprobables, la simetría hace que P(Roja) = P(Azul) = 0.5." },
+                { q: "Gema lanza 3 monedas. Probabilidad de sacar EXACTAMENTE 3 caras.", options: ["1/3", "3/8", "1/8", "1/6"], correct: 2, exp: "Casos totales: 2x2x2 = 8. Solo hay 1 combinación que sea pura Cara: (C,C,C). P = 1/8." },
+                { q: "Rodrigo tiene un dominó (28 fichas). Probabilidad de sacar el 'seis doble' (6-6) al coger una al azar:", options: ["1/28", "2/28", "1/6", "1/7"], correct: 0, exp: "El dominó tiene 28 fichas distintas en total. El 'seis doble' es una ficha específica y única. P = 1/28." },
+                { q: "Lidia observa un cruce de caminos. P(Accidente) = 0.05. ¿Cuál es el suceso contrario y su probabilidad?", options: ["No accidente; 0.95", "Accidente grave; 0.05", "No accidente; 1", "Accidente leve; 0.5"], correct: 0, exp: "El contrario de Accidente es No Accidente. Como la probabilidad total es 1, la contraria es 1 - 0.05 = 0.95." },
+                { q: "Cristian tiene 3 dados. Probabilidad de que todos salgan un 6:", options: ["1/18", "3/6", "1/216", "6/216"], correct: 2, exp: "Casos totales lanzando 3 dados: 6 x 6 x 6 = 216. Solo hay un caso (6,6,6). P = 1/216." },
+                { q: "Beatriz saca una carta de una baraja (40). Probabilidad de que NO sea un Rey NI un As.", options: ["32/40 (4/5)", "8/40", "20/40", "36/40"], correct: 0, exp: "Hay 4 Reyes y 4 Ases (8 cartas a evitar). Las que NO lo son = 40 - 8 = 32 cartas favorables. P = 32/40, simplificado a 4/5." },
+                { q: "Enzo tiene un dado trucado donde el 6 sale la mitad de las veces y los demás números se reparten la otra mitad. Probabilidad de sacar 6:", options: ["1/6", "1/2", "0.6", "1/12"], correct: 1, exp: "El enunciado dice explícitamente que sale 'la mitad de las veces'. La mitad equivale a una probabilidad de 1/2 (o 0.5 o 50%)." },
+                { q: "Gloria lanza dos dados. Probabilidad de que la suma sea MAYOR que 10.", options: ["3/36 (1/12)", "2/36", "4/36", "1/36"], correct: 0, exp: "Mayor que 10 significa suma 11 o 12. Suma 11: (5,6), (6,5). Suma 12: (6,6). Total = 3 casos de 36. P = 3/36 = 1/12." }
+            ]
+        };
+
+        // VARIABLES DE JUEGO
+        let currentLevel = '';
+        let currentQuestions = [];
+        let currentQIndex = 0;
+        let score = 0;
+        let attemptsLeft = 3;
+        let isQuestionBlocked = false;
+
+        // CONSTANTES DE IMÁGENES
+        const IMG_ALEGRE = "alegre.png";
+        const IMGS_FALLO = ["triste.png", "estresado.png"];
+        const IMGS_CONSEJO = ["consejo.png", "consejo 2.png", "secreto.png"];
+        const IMG_PENSATIVO = "pensativo.png";
+        
+        function getRandomImg(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        // Imágenes placeholder si fallan (para que no rompa el diseño visual en la demo)
+        const PL_ALEGRE = "https://placehold.co/80x80/22c55e/ffffff?text=:)";
+        const PL_TRISTE = "https://placehold.co/80x80/ef4444/ffffff?text=:(";
+        const PL_PENSATIVO = "https://placehold.co/80x80/f59e0b/ffffff?text=hmm";
+        const PL_CONSEJO = "https://placehold.co/80x80/D4AF37/ffffff?text=Tip";
+
+        function startGame(level) {
+            currentLevel = level;
+            currentQuestions = [...exercises[level]];
+            currentQIndex = 0;
+            score = 0;
+            
+            // Barajar un poco si se quisiera, pero dejaremos el orden estricto para revisión.
+            
+            document.getElementById('home-screen').classList.add('hidden');
+            document.getElementById('end-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            
+            document.getElementById('level-display').innerText = level === 'facil' ? 'Fácil' : level === 'medio' ? 'Medio' : 'Difícil';
+            updateScore();
+            
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            if (currentQIndex >= currentQuestions.length) {
+                showEndScreen();
+                return;
+            }
+
+            const qData = currentQuestions[currentQIndex];
+            attemptsLeft = 3;
+            isQuestionBlocked = false;
+
+            document.getElementById('question-counter').innerText = `${currentQIndex + 1}/20`;
+            document.getElementById('attempts-counter').innerText = attemptsLeft;
+            document.getElementById('question-text').innerText = qData.q;
+            
+            // Hide feedback
+            const feedbackArea = document.getElementById('feedback-area');
+            feedbackArea.classList.add('hidden');
+            feedbackArea.classList.remove('bg-green-50', 'border-green-300', 'bg-red-50', 'border-red-300', 'bg-yellow-50', 'border-yellow-300');
+            document.getElementById('next-btn').classList.add('hidden');
+            document.getElementById('avatar-secondary').classList.add('hidden');
+            
+            // Generar opciones
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+            
+            qData.options.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = "btn-option bg-white border-2 border-gray-200 text-gray-700 font-semibold py-4 px-6 rounded-xl text-left hover:bg-gray-50 focus:outline-none";
+                btn.innerText = optText;
+                btn.onclick = () => checkAnswer(index, btn);
+                btn.id = `option-${index}`;
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selectedIndex, btnElement) {
+            if (isQuestionBlocked) return;
+
+            const qData = currentQuestions[currentQIndex];
+            const isCorrect = (selectedIndex === qData.correct);
+
+            if (isCorrect) {
+                isQuestionBlocked = true;
+                if (attemptsLeft > 0) score++;
+                updateScore();
+                
+                btnElement.classList.add('disabled-correct');
+                disableAllButtons(qData.correct);
+                showFeedback(true);
+            } else {
+                attemptsLeft--;
+                document.getElementById('attempts-counter').innerText = attemptsLeft;
+                btnElement.classList.add('disabled-wrong');
+                btnElement.disabled = true;
+
+                if (attemptsLeft > 0) {
+                    showFeedbackRetry();
+                } else {
+                    isQuestionBlocked = true;
+                    disableAllButtons(qData.correct);
+                    document.getElementById(`option-${qData.correct}`).classList.add('disabled-correct');
+                    showFeedbackFail(qData.exp);
+                }
+            }
+        }
+
+        function disableAllButtons(correctIndex) {
+            const btns = document.querySelectorAll('.btn-option');
+            btns.forEach((b, i) => {
+                b.disabled = true;
+                if (i !== correctIndex && !b.classList.contains('disabled-wrong')) {
+                    b.classList.add('disabled-neutral');
+                }
+            });
+        }
+
+        function showFeedback(success) {
+            const feedbackArea = document.getElementById('feedback-area');
+            const avatar = document.getElementById('avatar-primary');
+            const text = document.getElementById('feedback-text');
+            const nextBtn = document.getElementById('next-btn');
+            
+            feedbackArea.classList.remove('hidden', 'bg-red-50', 'border-red-300', 'bg-yellow-50', 'border-yellow-300');
+            feedbackArea.classList.add('bg-green-50', 'border-green-300');
+            
+            avatar.src = IMG_ALEGRE;
+            avatar.onerror = () => { avatar.src = PL_ALEGRE; };
+            avatar.className = "w-20 h-20 rounded-full border-4 border-green-400 shadow-sm object-cover bg-white";
+            
+            document.getElementById('avatar-secondary').classList.add('hidden');
+            
+            text.innerHTML = "<span class='text-green-700 font-bold'>¡Correcto!</span> Has dado con la respuesta adecuada.";
+            nextBtn.classList.remove('hidden');
+        }
+
+        function showFeedbackRetry() {
+            const feedbackArea = document.getElementById('feedback-area');
+            const avatar = document.getElementById('avatar-primary');
+            const text = document.getElementById('feedback-text');
+            
+            feedbackArea.classList.remove('hidden', 'bg-green-50', 'border-green-300', 'bg-red-50', 'border-red-300');
+            feedbackArea.classList.add('bg-yellow-50', 'border-yellow-300');
+            
+            avatar.src = getRandomImg(IMGS_FALLO);
+            avatar.onerror = () => { avatar.src = PL_TRISTE; };
+            avatar.className = "w-20 h-20 rounded-full border-4 border-yellow-400 shadow-sm object-cover bg-white";
+            
+            document.getElementById('avatar-secondary').classList.add('hidden');
+            
+            text.innerHTML = `<span class='text-yellow-700 font-bold'>Esa no es la respuesta.</span> Te quedan ${attemptsLeft} intento(s). ¡Piénsalo bien!`;
+        }
+
+        function showFeedbackFail(explanation) {
+            const feedbackArea = document.getElementById('feedback-area');
+            const avatarPrimary = document.getElementById('avatar-primary');
+            const avatarSecondary = document.getElementById('avatar-secondary');
+            const text = document.getElementById('feedback-text');
+            const nextBtn = document.getElementById('next-btn');
+            
+            feedbackArea.classList.remove('hidden', 'bg-green-50', 'border-green-300', 'bg-yellow-50', 'border-yellow-300');
+            feedbackArea.classList.add('bg-red-50', 'border-red-300');
+            
+            // Avatar Triste
+            avatarPrimary.src = getRandomImg(IMGS_FALLO);
+            avatarPrimary.onerror = () => { avatarPrimary.src = PL_TRISTE; };
+            avatarPrimary.className = "w-20 h-20 rounded-full border-4 border-red-400 shadow-sm object-cover bg-white";
+            
+            // Avatar Consejo
+            avatarSecondary.src = getRandomImg(IMGS_CONSEJO);
+            avatarSecondary.onerror = () => { avatarSecondary.src = PL_CONSEJO; };
+            avatarSecondary.classList.remove('hidden');
+            avatarSecondary.className = "w-20 h-20 rounded-full border-4 border-gold shadow-sm object-cover bg-white";
+            
+            text.innerHTML = `<span class='text-red-600 font-bold'>¡Intentos agotados!</span> La respuesta correcta se ha marcado en verde.<br><br>
+                              <div class='bg-white p-4 rounded-lg border border-red-100 mt-2 text-left text-sm md:text-base text-gray-800 shadow-inner'>
+                                <strong>Explicación:</strong> ${explanation}
+                              </div>`;
+            nextBtn.classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            currentQIndex++;
+            loadQuestion();
+        }
+
+        function updateScore() {
+            document.getElementById('score-counter').innerText = score;
+        }
+
+        function showEndScreen() {
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('end-screen').classList.remove('hidden');
+            document.getElementById('final-score').innerText = score;
+        }
+
+        function returnToHome() {
+            document.getElementById('end-screen').classList.add('hidden');
+            document.getElementById('home-screen').classList.remove('hidden');
+        }
+
+    </script>
+</body>
+</html>
