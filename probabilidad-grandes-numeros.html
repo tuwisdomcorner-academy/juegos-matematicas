@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wisdom Corner Academy - Ley de los Grandes Números</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: '#000080',
+                        gold: '#FFD700',
+                        white: '#FFFFFF'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #FFFFFF; color: #000080; margin: 0; padding: 0; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type="number"] { -moz-appearance: textfield; }
+        
+        .comic-tail {
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 20px 20px 0;
+            border-style: solid;
+            border-color: #000080 transparent transparent transparent;
+        }
+        .comic-tail::after {
+            content: '';
+            position: absolute;
+            bottom: 5px;
+            left: -15px;
+            border-width: 15px 15px 0;
+            border-style: solid;
+            border-color: #FFFFFF transparent transparent transparent;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col font-sans overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-navy text-white p-4 flex items-center justify-center border-b-4 border-gold z-20 shrink-0 shadow-md">
+        <div class="flex items-center gap-4">
+            <div class="w-16 h-16 bg-white rounded-full p-1 flex items-center justify-center overflow-hidden border-2 border-gold">
+                <img src="Logo.png" alt="Wisdom Corner Academy" class="w-full h-full object-contain">
+            </div>
+            <h1 class="text-2xl md:text-3xl font-black uppercase tracking-widest">
+                Wisdom Corner <span class="text-gold">Academy</span>
+            </h1>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden flex-col md:flex-row">
+        
+        <!-- Left Column: Menu & Avatar -->
+        <aside class="w-full md:w-1/3 border-r-4 border-navy flex flex-col z-10 shrink-0 bg-white">
+            
+            <!-- Difficulty Menu -->
+            <div class="p-4 border-b-4 border-gold">
+                <h2 class="text-xl font-bold text-center mb-4 uppercase">Elige tu Nivel</h2>
+                <div class="flex flex-col gap-2">
+                    <button onclick="setLevel('facil')" id="btn-facil" class="level-btn w-full py-3 rounded-lg font-bold text-lg border-2 border-navy bg-white text-navy hover:bg-navy hover:text-white transition-colors">
+                        Nivel Fácil
+                    </button>
+                    <button onclick="setLevel('medio')" id="btn-medio" class="level-btn w-full py-3 rounded-lg font-bold text-lg border-2 border-navy bg-white text-navy hover:bg-navy hover:text-white transition-colors">
+                        Nivel Medio
+                    </button>
+                    <button onclick="setLevel('dificil')" id="btn-dificil" class="level-btn w-full py-3 rounded-lg font-bold text-lg border-2 border-navy bg-white text-navy hover:bg-navy hover:text-white transition-colors">
+                        Nivel Difícil
+                    </button>
+                </div>
+            </div>
+
+            <!-- Avatar & Speech Bubble -->
+            <div class="flex-1 flex flex-col items-center justify-center p-6 relative">
+                
+                <div class="bg-white border-4 border-navy rounded-xl p-4 mb-8 relative shadow-lg w-full text-center min-h-[120px] flex items-center justify-center fade-in">
+                    <p id="teacher-bubble" class="text-navy font-bold text-base md:text-lg">
+                        ¡Hola! Selecciona un nivel arriba para comenzar a practicar. Recuerda repasar tus apuntes si te atascas.
+                    </p>
+                    <div class="comic-tail"></div>
+                </div>
+
+                <div class="relative fade-in">
+                    <img id="teacher-avatar" src="pensativo.png" alt="Profesor" class="w-48 h-48 md:w-64 md:h-64 object-cover border-4 border-gold rounded-full bg-white shadow-xl">
+                    
+                    <div id="attempts-badge" class="absolute bottom-0 right-0 bg-white text-navy font-black rounded-full w-14 h-14 flex items-center justify-center border-4 border-navy shadow-md hidden">
+                        <span id="attempts-count" class="text-2xl">3</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Right Column: Exercise Area -->
+        <main class="w-full md:w-2/3 p-6 md:p-12 flex flex-col bg-white overflow-y-auto">
+            
+            <div id="exercise-container" class="border-4 border-navy rounded-2xl shadow-lg p-8 flex-1 flex flex-col gap-8 hidden fade-in relative">
+                
+                <div class="absolute top-0 left-0 w-full h-4 bg-gold rounded-t-lg"></div>
+
+                <div class="mt-4">
+                    <h2 class="text-3xl font-black text-navy mb-2" id="exercise-title">Problema</h2>
+                    <div class="h-1 w-20 bg-gold"></div>
+                </div>
+
+                <div class="text-xl font-bold text-navy leading-relaxed border-2 border-gold p-6 rounded-xl bg-white shadow-sm flex-1">
+                    <p id="question-text"></p>
+                </div>
+
+                <div id="interaction-area" class="flex flex-col md:flex-row gap-4">
+                    <input type="number" step="0.001" id="user-input" placeholder="Tu respuesta..." class="flex-grow bg-white border-4 border-navy text-navy text-2xl font-bold rounded-xl p-4 outline-none focus:border-gold text-center md:text-left transition-colors">
+                    <button id="submit-btn" onclick="checkAnswer()" class="bg-navy text-white px-8 py-4 rounded-xl font-black text-xl hover:bg-white hover:text-navy border-4 border-navy transition-colors shadow-md uppercase">
+                        Comprobar
+                    </button>
+                </div>
+                
+                <p id="hint-text" class="text-navy font-bold text-sm text-center">
+                    Usa puntos o comas para decimales. Margen de error: ±0.03.
+                </p>
+
+                <div id="explanation-area" class="hidden border-4 border-gold bg-white p-6 rounded-xl mt-4 fade-in">
+                    <h3 class="text-xl font-black text-navy mb-2">Explicación Paso a Paso:</h3>
+                    <p id="explanation-text" class="text-navy font-bold text-lg leading-relaxed"></p>
+                    <button onclick="generateProceduralProblem()" class="mt-6 bg-gold text-navy px-8 py-3 rounded-xl font-black text-lg hover:bg-navy hover:text-white border-4 border-navy transition-colors shadow-md uppercase w-full">
+                        Siguiente Ejercicio
+                    </button>
+                </div>
+
+                <!-- Next button for correct answers -->
+                <button id="next-btn" onclick="generateProceduralProblem()" class="hidden bg-gold text-navy px-8 py-4 rounded-xl font-black text-xl hover:bg-navy hover:text-white border-4 border-navy transition-colors shadow-md uppercase w-full mt-4">
+                    ¡Excelente! Siguiente
+                </button>
+            </div>
+            
+            <div id="welcome-container" class="flex-1 flex flex-col items-center justify-center text-center">
+                <h2 class="text-4xl font-black text-navy mb-4">Bienvenido al Área de Práctica</h2>
+                <p class="text-xl text-navy font-bold">Selecciona una dificultad en el menú lateral para generar problemas ilimitados sobre la Ley de los Grandes Números.</p>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        const IMG_PENSATIVO = "pensativo.png";
+        const IMG_ALEGRE = "alegre.png";
+        const IMG_ESTRESADO = "estresado.png";
+        const IMG_TRISTE = "triste.png";
+        const IMG_CONSEJO = "consejo.png"; // Usamos consejo para el fallo final
+
+        let currentExercise = null;
+        let attempts = 3;
+        let activeLevel = null;
+        let isBlocked = false;
+
+        function setLevel(level) {
+            activeLevel = level;
+            
+            document.querySelectorAll('.level-btn').forEach(btn => {
+                btn.classList.remove('bg-navy', 'text-white');
+                btn.classList.add('bg-white', 'text-navy');
+            });
+            
+            const activeBtn = document.getElementById('btn-' + level);
+            activeBtn.classList.remove('bg-white', 'text-navy');
+            activeBtn.classList.add('bg-navy', 'text-white');
+
+            document.getElementById('welcome-container').classList.add('hidden');
+            document.getElementById('exercise-container').classList.remove('hidden');
+
+            generateProceduralProblem();
+        }
+
+        function generateProceduralProblem() {
+            if (!activeLevel) return;
+            
+            attempts = 3;
+            isBlocked = false;
+            
+            let q = "";
+            let ans = 0;
+            let exp = "";
+
+            if (activeLevel === 'facil') {
+                const objetos = ["un dardo asimétrico", "una ficha trucada", "un cilindro irregular", "una caja de colores"];
+                const obj = objetos[Math.floor(Math.random() * objetos.length)];
+                const N = [100, 250, 400, 1000][Math.floor(Math.random() * 4)];
+                const f = Math.floor(Math.random() * (N * 0.7)) + (N * 0.15);
+                
+                q = `Se ha lanzado ${obj} un total de ${N} veces. Ha caído de pie en ${f} ocasiones. Según la Ley de los Grandes Números, ¿cuál es la probabilidad empírica (frecuencia relativa) de que caiga de pie en el próximo intento?`;
+                ans = f / N;
+                exp = `1. Identificamos los casos favorables (Frecuencia absoluta): ${f}.<br>2. Identificamos el total de repeticiones (N): ${N}.<br>3. Calculamos la frecuencia relativa: ${f} / ${N} = <b>${ans.toFixed(4)}</b>.`;
+                document.getElementById('exercise-title').innerText = "Frecuencia Relativa Básica";
+
+            } else if (activeLevel === 'medio') {
+                const escenarios = [
+                    { ctx: "lotes de zapatillas", fail: "con taras" },
+                    { ctx: "pantallas de móvil", fail: "rotas" },
+                    { ctx: "paquetes de envío", fail: "extraviados" }
+                ];
+                const esc = escenarios[Math.floor(Math.random() * escenarios.length)];
+                const total = [2000, 5000, 8000, 12000][Math.floor(Math.random() * 4)];
+                const fallos = Math.floor(Math.random() * 300) + 50;
+                const correctos = total - fallos;
+                
+                q = `En el control de logística se han registrado ${total} ${esc.ctx}. De ellos, ${fallos} resultaron estar ${esc.fail}. ¿Cuál es la probabilidad empírica de que el próximo elemento evaluado al azar sea CORRECTO (no esté fallido)?`;
+                ans = correctos / total;
+                exp = `1. Nos piden la probabilidad del suceso contrario (ser correcto).<br>2. Restamos los fallos al total para hallar los correctos: ${total} - ${fallos} = ${correctos}.<br>3. Calculamos la probabilidad: ${correctos} / ${total} = <b>${ans.toFixed(4)}</b>.`;
+                document.getElementById('exercise-title').innerText = "Sucesos Contrarios";
+
+            } else if (activeLevel === 'dificil') {
+                const objetos = ["monedas antiguas", "cromos raros", "sellos"];
+                const obj = objetos[Math.floor(Math.random() * objetos.length)];
+                const poblacionReal = [40, 80, 150][Math.floor(Math.random() * 3)];
+                const extracciones = [200, 400, 1000][Math.floor(Math.random() * 3)];
+                const probReal = Math.random() * 0.4 + 0.2; 
+                const freqFav = Math.round(extracciones * probReal); 
+                
+                ans = Math.round((freqFav / extracciones) * poblacionReal); 
+                
+                q = `En una caja fuerte hay exactamente ${poblacionReal} ${obj}. Extraemos un objeto al azar, anotamos su tipo y lo devolvemos, repitiendo esto ${extracciones} veces. Hemos sacado uno considerado 'Especial' en ${freqFav} ocasiones. Usando esta probabilidad, ¿CUÁNTOS ${obj} especiales estimas que hay realmente en la caja fuerte? (Anota un número entero).`;
+                exp = `1. Primero, hallamos la probabilidad empírica de sacar uno especial: ${freqFav} / ${extracciones} = ${(freqFav/extracciones).toFixed(4)}.<br>2. Esto nos dice qué proporción del total son especiales.<br>3. Multiplicamos la proporción por el total real de la caja: ${(freqFav/extracciones).toFixed(4)} × ${poblacionReal} = <b>${ans}</b>.`;
+                document.getElementById('exercise-title').innerText = "Estimación Real";
+            }
+
+            currentExercise = { q, ans, exp };
+
+            document.getElementById('question-text').innerHTML = currentExercise.q;
+            document.getElementById('user-input').value = '';
+            document.getElementById('user-input').disabled = false;
+            
+            document.getElementById('interaction-area').classList.remove('hidden');
+            document.getElementById('hint-text').classList.remove('hidden');
+            document.getElementById('explanation-area').classList.add('hidden');
+            document.getElementById('next-btn').classList.add('hidden');
+            
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = false;
+            btn.innerText = "COMPROBAR";
+            btn.className = "bg-navy text-white px-8 py-4 rounded-xl font-black text-xl hover:bg-white hover:text-navy border-4 border-navy transition-colors shadow-md uppercase";
+
+            document.getElementById('attempts-badge').classList.remove('hidden');
+            setAvatar(IMG_PENSATIVO, "Lee atentamente. Recuerda la fórmula: Casos ocurridos / Número total de experimentos.");
+            updateAttemptsBadge();
+            document.getElementById('user-input').focus();
+        }
+
+        function checkAnswer() {
+            if (isBlocked || !currentExercise) return;
+
+            const inputEl = document.getElementById('user-input');
+            const userStr = inputEl.value.replace(',', '.').trim();
+            if (userStr === '') return;
+
+            const userVal = parseFloat(userStr);
+            if (isNaN(userVal)) return;
+
+            const correctAns = currentExercise.ans;
+            
+            let isCorrect = false;
+            if (activeLevel === 'dificil') {
+                isCorrect = Math.abs(userVal - correctAns) < 0.6; // Tolerancia para redondeos enteros
+            } else {
+                isCorrect = Math.abs(userVal - correctAns) <= 0.035; // Tolerancia decimal
+            }
+
+            if (isCorrect) {
+                isBlocked = true;
+                setAvatar(IMG_ALEGRE, "¡Magnífico! Has aplicado perfectamente la Ley de los Grandes Números.");
+                blockUI(true);
+            } else {
+                attempts--;
+                updateAttemptsBadge();
+                inputEl.value = '';
+                inputEl.focus();
+
+                if (attempts === 2) {
+                    setAvatar(IMG_ESTRESADO, "Mmm, ese no es el resultado. Revisa si estás dividiendo los números correctos en el orden adecuado.");
+                } else if (attempts === 1) {
+                    setAvatar(IMG_TRISTE, "Vaya, sigue sin ser correcto. Fíjate bien si te piden el total original o el contrario. ¡Es tu último intento!");
+                } else {
+                    isBlocked = true;
+                    setAvatar(IMG_CONSEJO, "No pasa nada, repasa los apuntes del PDF sobre la fórmula general y sucesos contrarios. Aquí tienes la explicación completa.");
+                    showExplanation();
+                    blockUI(false);
+                }
+            }
+        }
+
+        function setAvatar(img, text) {
+            document.getElementById('teacher-avatar').src = img;
+            document.getElementById('teacher-bubble').innerHTML = text;
+        }
+
+        function updateAttemptsBadge() {
+            const badge = document.getElementById('attempts-badge');
+            document.getElementById('attempts-count').innerText = attempts;
+            
+            if (attempts === 3) {
+                badge.className = "absolute bottom-0 right-0 bg-white text-navy font-black rounded-full w-14 h-14 flex items-center justify-center border-4 border-navy shadow-md";
+            } else if (attempts === 2) {
+                badge.className = "absolute bottom-0 right-0 bg-gold text-navy font-black rounded-full w-14 h-14 flex items-center justify-center border-4 border-navy shadow-md";
+            } else {
+                badge.className = "absolute bottom-0 right-0 bg-navy text-white font-black rounded-full w-14 h-14 flex items-center justify-center border-4 border-gold shadow-md";
+            }
+        }
+
+        function blockUI(wasCorrect) {
+            document.getElementById('user-input').disabled = true;
+            document.getElementById('interaction-area').classList.add('hidden');
+            document.getElementById('hint-text').classList.add('hidden');
+            
+            if (wasCorrect) {
+                document.getElementById('next-btn').classList.remove('hidden');
+            }
+        }
+
+        function showExplanation() {
+            const explArea = document.getElementById('explanation-area');
+            const explText = document.getElementById('explanation-text');
+            explText.innerHTML = `La respuesta correcta era: <b>${activeLevel === 'dificil' ? currentExercise.ans : currentExercise.ans.toFixed(4)}</b><br><br>${currentExercise.exp}`;
+            explArea.classList.remove('hidden');
+        }
+
+    </script>
+</body>
+</html>
