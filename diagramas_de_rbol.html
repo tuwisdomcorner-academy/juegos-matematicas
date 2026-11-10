@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wisdom Corner Academy - Diagramas de Árbol</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: '#000080',
+                        gold: '#FFD700',
+                        white: '#FFFFFF'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #FFFFFF; color: #000080; margin: 0; padding: 0; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .comic-tail {
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 20px 20px 0;
+            border-style: solid;
+            border-color: #000080 transparent transparent transparent;
+        }
+        .comic-tail::after {
+            content: '';
+            position: absolute;
+            bottom: 5px;
+            left: -15px;
+            border-width: 15px 15px 0;
+            border-style: solid;
+            border-color: #FFFFFF transparent transparent transparent;
+        }
+
+        /* Tree Builder Styles (Horizontal) */
+        .tree-container {
+            display: flex;
+            justify-content: flex-start;
+            overflow-x: auto;
+            overflow-y: auto;
+            padding: 2rem;
+            background: #f8fafc;
+            min-height: 300px;
+        }
+        
+        ul.tree-ui {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        
+        ul.tree-ui ul {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            list-style: none;
+            margin: 0 0 0 2rem;
+            padding: 0 0 0 2rem;
+            border-left: 4px solid #FFD700;
+            position: relative;
+        }
+        
+        ul.tree-ui li {
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+        
+        /* Horizontal connecting lines */
+        ul.tree-ui ul li::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: -2rem;
+            width: 2rem;
+            border-top: 4px solid #FFD700;
+        }
+        
+        /* Masking the vertical line above the first child and below the last child */
+        ul.tree-ui ul li:first-child::after {
+            content: '';
+            position: absolute;
+            top: -2rem;
+            left: -2.3rem; /* slightly larger to cover border completely */
+            width: 0.6rem;
+            height: calc(50% + 2rem);
+            background: #f8fafc; /* match .tree-container background */
+        }
+        
+        ul.tree-ui ul li:last-child::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: -2.3rem;
+            bottom: -2rem;
+            width: 0.6rem;
+            background: #f8fafc; /* match .tree-container background */
+        }
+
+        /* Estilo para el scroll del bocadillo */
+        .bubble-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .bubble-scroll::-webkit-scrollbar-thumb {
+            background-color: #000080;
+            border-radius: 10px;
+        }
+        .bubble-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col font-sans overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-navy text-white p-4 flex items-center justify-center border-b-4 border-gold z-20 shrink-0 shadow-md">
+        <div class="flex items-center gap-4">
+            <div class="w-16 h-16 bg-white rounded-full p-1 flex items-center justify-center overflow-hidden border-2 border-gold">
+                <img src="logo.png" alt="Wisdom Corner Academy" onerror="this.src='https://placehold.co/100x100/FFD700/000080?text=WC'" class="w-full h-full object-contain">
+            </div>
+            <h1 class="text-2xl md:text-3xl font-black uppercase tracking-widest">
+                Wisdom Corner <span class="text-gold">Academy</span>
+            </h1>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden flex-col md:flex-row">
+        
+        <!-- Controles y Feedback (Izquierda) -->
+        <aside class="w-full md:w-[280px] border-r-4 border-navy flex flex-col z-10 shrink-0 bg-white overflow-y-auto">
+            
+            <!-- Selector Dificultad -->
+            <div class="p-4 border-b-4 border-gold">
+                <h2 class="text-xl font-bold text-center mb-4 uppercase">Generar Problema</h2>
+                <div class="flex gap-2 justify-center">
+                    <button onclick="startLevel('Fácil')" id="btn-facil" class="level-btn flex-1 py-2 rounded-lg font-bold border-2 border-navy bg-white text-navy hover:bg-navy hover:text-white transition-colors">Fácil</button>
+                    <button onclick="startLevel('Medio')" id="btn-medio" class="level-btn flex-1 py-2 rounded-lg font-bold border-2 border-navy bg-white text-navy hover:bg-navy hover:text-white transition-colors">Medio</button>
+                    <button onclick="startLevel('Difícil')" id="btn-dificil" class="level-btn flex-1 py-2 rounded-lg font-bold border-2 border-navy bg-white text-navy hover:bg-navy hover:text-white transition-colors">Difícil</button>
+                </div>
+            </div>
+
+            <!-- Avatar y Bocadillo -->
+            <div class="flex-1 flex flex-col items-center justify-center p-6 relative min-h-[350px]">
+                
+                <div class="bg-white border-4 border-navy rounded-xl p-3 mb-8 relative shadow-lg w-full text-center h-[140px] flex items-center justify-center fade-in">
+                    <p id="teacher-bubble" class="text-navy font-bold text-sm md:text-[13px] leading-snug overflow-y-auto w-full max-h-full pr-1 bubble-scroll text-left flex items-center justify-center">
+                        ¡Bienvenido! Elige una dificultad arriba para construir diagramas de árbol de probabilidad.
+                    </p>
+                    <div class="comic-tail"></div>
+                </div>
+
+                <div class="relative fade-in">
+                    <img id="teacher-avatar" src="pensativo.png" onerror="this.src='https://placehold.co/200x200/000080/FFFFFF?text=Profe'" alt="Profesor" class="w-40 h-40 md:w-48 md:h-48 mx-auto object-cover border-4 border-gold rounded-full bg-white shadow-xl">
+                    
+                    <div id="attempts-badge" class="absolute bottom-0 right-0 bg-navy text-white font-black rounded-full w-12 h-12 items-center justify-center border-4 border-gold shadow-md hidden flex">
+                        <span id="attempts-count" class="text-xl">3</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Zona de Trabajo (Derecha) -->
+        <main class="flex-1 p-4 md:p-8 flex flex-col bg-slate-50 overflow-y-auto relative">
+            
+            <div id="welcome-msg" class="flex-1 flex flex-col items-center justify-center text-center">
+                <h2 class="text-4xl font-black text-navy mb-4">Constructor de Árboles</h2>
+                <p class="text-xl text-navy font-bold max-w-lg">Crea diagramas de árbol horizontales. Añade ramas, introduce los sucesos y sus probabilidades. ¡Y no olvides la operación final!</p>
+            </div>
+
+            <div id="workspace-container" class="hidden flex-col h-full fade-in">
+                <!-- Problema actual -->
+                <div class="bg-white border-4 border-navy rounded-xl p-6 shadow-md mb-6 relative">
+                    <div class="absolute -top-4 left-4 bg-gold text-navy font-black px-4 py-1 rounded-full border-2 border-navy text-sm uppercase" id="lbl-dificultad">
+                        Nivel
+                    </div>
+                    <p id="problem-text" class="text-lg md:text-xl font-bold text-navy mt-2 leading-relaxed"></p>
+                </div>
+
+                <!-- Editor de Árbol -->
+                <div class="bg-white border-4 border-gold rounded-xl shadow-md overflow-hidden flex flex-col">
+                    <div class="p-4 bg-gold flex justify-between items-center border-b-4 border-gold">
+                        <h3 class="text-xl font-black text-navy uppercase">Lienzo del Árbol</h3>
+                        <button onclick="addRootBranch()" id="btn-add-root" class="bg-navy text-white px-4 py-2 rounded-lg font-bold hover:bg-white hover:text-navy transition-colors border-2 border-navy">
+                            + Añadir Rama Inicial
+                        </button>
+                    </div>
+                    
+                    <!-- Aquí se renderiza recursivamente el árbol -->
+                    <div id="tree-render-area" class="tree-container"></div>
+                </div>
+
+                <!-- Zona Botón Comprobar y Solución -->
+                <div class="mt-6 flex flex-col gap-4">
+                    
+                    <!-- Input de Operación Final -->
+                    <div class="bg-white border-4 border-navy rounded-xl p-4 shadow-md">
+                        <label class="font-bold text-navy text-lg mb-2 block">Escribe tu operación, fracción simplificada al máximo y el decimal:</label>
+                        <input type="text" id="final-operation" class="w-full border-2 border-gold rounded-lg p-3 text-lg font-bold outline-none focus:border-navy" placeholder="Ej: 1/2 * 1/2 = 1/4 = 0.25">
+                    </div>
+
+                    <button id="btn-comprobar" onclick="checkTree()" class="w-full bg-gold text-navy py-4 rounded-xl font-black text-2xl hover:bg-navy hover:text-white border-4 border-navy transition-all shadow-lg uppercase tracking-wider">
+                        Comprobar
+                    </button>
+
+                    <div id="solution-box" class="hidden bg-white border-4 border-navy rounded-xl p-6 shadow-md fade-in">
+                        <h4 class="text-gold font-black text-xl bg-navy inline-block px-3 py-1 rounded mb-3">Solución Explicada</h4>
+                        <p id="solution-text" class="text-navy font-bold text-lg mb-2"></p>
+                        <p id="solution-op" class="text-navy font-black text-xl bg-slate-100 p-2 border-2 border-dashed border-navy inline-block"></p>
+                        <button onclick="document.querySelector('.level-btn.bg-navy').click()" class="mt-4 bg-navy text-white px-6 py-2 rounded-lg font-bold hover:bg-gold hover:text-navy border-2 border-navy w-full transition-colors">
+                            Siguiente Problema
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // --- CONSTANTES ---
+        const IMG_PENSATIVO = 'pensativo.png';
+        const IMG_ALEGRE = 'alegre.png';
+        const IMG_TRISTE = 'triste.png';
+        const IMG_ESTRESADO = 'estresado.png';
+        const IMG_CONSEJO = 'consejo.png';
+        const IMG_SECRETO = 'secreto.png';
+
+        // --- BASE DE DATOS DE PROBLEMAS (20 Originales) ---
+        const problems = [
+            // FÁCIL (7)
+            { level: 'Fácil', text: "Lanzamos una moneda equilibrada. Construye el diagrama y calcula la probabilidad de sacar 'Cara'. Simplifica y pon decimal.", tree: [ { keys: ["c", "cara"], prob: 1/2 }, { keys: ["x", "cruz"], prob: 1/2 } ], finalProb: 0.5, op: "1/2 = 0.5", sol: "Árbol con 2 ramas: Cara (1/2) y Cruz (1/2)." },
+            { level: 'Fácil', text: "Lanzamos un dado normal de 6 caras. Calcula la probabilidad de que salga un número 'Par'. Simplifica y pon decimal.", tree: [ { keys: ["par"], prob: 1/2 }, { keys: ["imp", "impar"], prob: 1/2 } ], finalProb: 0.5, op: "3/6 = 1/2 = 0.5", sol: "Ramas: Par (3/6=1/2) e Impar (3/6=1/2)." },
+            { level: 'Fácil', text: "Bolsa con 3 caramelos de Fresa y 2 de Limón. Extraemos uno al azar. ¿Probabilidad de sacar Fresa?", tree: [ { keys: ["fres", "fresa"], prob: 3/5 }, { keys: ["lim", "limón", "limon"], prob: 2/5 } ], finalProb: 0.6, op: "3/5 = 0.6", sol: "Total = 5. Ramas: Fresa (3/5) y Limón (2/5)." },
+            { level: 'Fácil', text: "Ruleta con 1 sector Azul y 3 Rojos. ¿Probabilidad de caer en Azul?", tree: [ { keys: ["az", "azul"], prob: 1/4 }, { keys: ["roj", "roja", "rojo"], prob: 3/4 } ], finalProb: 0.25, op: "1/4 = 0.25", sol: "Total = 4. Azul (1/4) y Rojo (3/4)." },
+            { level: 'Fácil', text: "Semáforo: Rojo (2/5), Verde (1/2), Ámbar (1/10). ¿Probabilidad de Verde?", tree: [ { keys: ["roj", "rojo"], prob: 2/5 }, { keys: ["ver", "verde"], prob: 1/2 }, { keys: ["am", "ámbar", "ambar"], prob: 1/10 } ], finalProb: 0.5, op: "5/10 = 1/2 = 0.5", sol: "Ramas directas: Rojo(2/5), Verde(1/2), Ámbar(1/10)." },
+            { level: 'Fácil', text: "El clima de hoy: 2/7 Lluvia, 5/7 Sol. ¿Probabilidad de Sol? Expresa en fracción y decimal.", tree: [ { keys: ["lluv", "llueve", "lluvia"], prob: 2/7 }, { keys: ["sol", "soleado"], prob: 5/7 } ], finalProb: 5/7, op: "5/7 = 0.71", sol: "Lluvia (2/7) y Sol (5/7)." },
+            { level: 'Fácil', text: "Llegar a tiempo al tren: 4/5, tarde: 1/5. ¿Probabilidad de llegar tarde?", tree: [ { keys: ["tiem", "tiempo", "puntual", "pronto"], prob: 4/5 }, { keys: ["tard", "tarde"], prob: 1/5 } ], finalProb: 0.2, op: "1/5 = 0.2", sol: "A tiempo (4/5) y Tarde (1/5)." },
+
+            // MEDIO (7)
+            { level: 'Medio', text: "Lanzamos dos monedas seguidas. Calcula la probabilidad de obtener 'Cara' y 'Cara'. Fracción y decimal.", tree: [ { keys: ["car", "c"], prob: 1/2, children: [ { keys: ["car", "c"], prob: 1/2 }, { keys: ["cruz", "x"], prob: 1/2 } ] }, { keys: ["cruz", "x"], prob: 1/2, children: [ { keys: ["car", "c"], prob: 1/2 }, { keys: ["cruz", "x"], prob: 1/2 } ] } ], finalProb: 0.25, op: "1/2 * 1/2 = 1/4 = 0.25", sol: "Ramas N1: C(1/2), X(1/2). N2: C(1/2), X(1/2) en cada una." },
+            { level: 'Medio', text: "Urna: 1 Blanca, 4 Negras. Sacamos una, la DEVOLVEMOS y sacamos otra. Probabilidad de Blanca y Blanca.", tree: [ { keys: ["bla", "b"], prob: 1/5, children: [ { keys: ["bla", "b"], prob: 1/5 }, { keys: ["neg", "n"], prob: 4/5 } ] }, { keys: ["neg", "n"], prob: 4/5, children: [ { keys: ["bla", "b"], prob: 1/5 }, { keys: ["neg", "n"], prob: 4/5 } ] } ], finalProb: 1/25, op: "1/5 * 1/5 = 1/25 = 0.04", sol: "Con reemplazo. B(1/5) y N(4/5) en ambos niveles." },
+            { level: 'Medio', text: "Lanzamos moneda (Cara/Cruz) y dado (Par/Impar). Probabilidad de 'Cruz' y número 'Par'.", tree: [ { keys: ["car", "c"], prob: 1/2, children: [ { keys: ["par"], prob: 1/2 }, { keys: ["imp", "impar"], prob: 1/2 } ] }, { keys: ["cruz", "x"], prob: 1/2, children: [ { keys: ["par"], prob: 1/2 }, { keys: ["imp", "impar"], prob: 1/2 } ] } ], finalProb: 0.25, op: "1/2 * 1/2 = 1/4 = 0.25", sol: "N1: C(1/2), X(1/2). N2: Par(1/2) e Impar(1/2)." },
+            { level: 'Medio', text: "Semilla germina (3/5) o no (2/5). Si germina, da flor (4/5) o no (1/5). Probabilidad de que Germine y dé Flor.", tree: [ { keys: ["ger", "germina", "si"], prob: 3/5, children: [ { keys: ["flor"], prob: 4/5 }, { keys: ["noflor", "no flor", "nada"], prob: 1/5 } ] }, { keys: ["no", "no ger"], prob: 2/5, children: [] } ], finalProb: 0.48, op: "3/5 * 4/5 = 12/25 = 0.48", sol: "A la rama 'No germina' no se le añaden hijas." },
+            { level: 'Medio', text: "Máquina 1 (1/2), Máquina 2 (1/2). M1 falla 1/10 (buena 9/10). M2 falla 1/5 (buena 4/5). Probabilidad de pieza hecha en M1 y que Falle.", tree: [ { keys: ["m1", "maq 1", "máquina 1"], prob: 1/2, children: [ { keys: ["bue", "buena"], prob: 9/10 }, { keys: ["fal", "falla", "defec"], prob: 1/10 } ] }, { keys: ["m2", "maq 2", "máquina 2"], prob: 1/2, children: [ { keys: ["bue", "buena"], prob: 8/10 }, { keys: ["fal", "falla", "defec"], prob: 2/10 } ] } ], finalProb: 0.05, op: "1/2 * 1/10 = 1/20 = 0.05", sol: "N1: M1(1/2), M2(1/2). N2 M1: B(9/10), F(1/10)." },
+            { level: 'Medio', text: "Clima Sábado: Llover (1/5), Sol (4/5). Domingo: Llover (2/5), Sol (3/5). Probabilidad de Llover Sábado y Llover Domingo.", tree: [ { keys: ["lluv", "llueve"], prob: 1/5, children: [ { keys: ["lluv", "llueve"], prob: 2/5 }, { keys: ["sol", "soleado"], prob: 3/5 } ] }, { keys: ["sol", "soleado"], prob: 4/5, children: [ { keys: ["lluv", "llueve"], prob: 2/5 }, { keys: ["sol", "soleado"], prob: 3/5 } ] } ], finalProb: 0.08, op: "1/5 * 2/5 = 2/25 = 0.08", sol: "Multiplica la rama de lluvia del sábado por la del domingo." },
+            { level: 'Medio', text: "Juego. Gano (1/10) o Pierdo (9/10). Dos rondas. Probabilidad de Ganar ambas.", tree: [ { keys: ["gan", "gana", "g"], prob: 1/10, children: [ { keys: ["gan", "gana", "g"], prob: 1/10 }, { keys: ["pier", "p", "pierde"], prob: 9/10 } ] }, { keys: ["pier", "p", "pierde"], prob: 9/10, children: [ { keys: ["gan", "gana", "g"], prob: 1/10 }, { keys: ["pier", "p", "pierde"], prob: 9/10 } ] } ], finalProb: 0.01, op: "1/10 * 1/10 = 1/100 = 0.01", sol: "N1: G(1/10), P(9/10). N2 idéntico." },
+
+            // DIFÍCIL (6) - 3 Variantes y Combinadas
+            { 
+                level: 'Difícil', 
+                text: "Urna con 2 Rojas, 1 Azul, 1 Verde (4 total). Sacamos 2 SIN reposición. ¿Probabilidad de sacar Roja y Verde en CUALQUIER orden? Simplifica la fracción y pon decimal.", 
+                tree: [ 
+                    { keys: ["roj", "r"], prob: 2/4, children: [ { keys: ["roj", "r"], prob: 1/3 }, { keys: ["az", "a"], prob: 1/3 }, { keys: ["ver", "v"], prob: 1/3 } ] }, 
+                    { keys: ["az", "a"], prob: 1/4, children: [ { keys: ["roj", "r"], prob: 2/3 }, { keys: ["az", "a"], prob: 0 }, { keys: ["ver", "v"], prob: 1/3 } ] },
+                    { keys: ["ver", "v"], prob: 1/4, children: [ { keys: ["roj", "r"], prob: 2/3 }, { keys: ["az", "a"], prob: 1/3 }, { keys: ["ver", "v"], prob: 0 } ] }
+                ], 
+                finalProb: 1/3, 
+                op: "2/12 + 2/12 = 4/12 = 1/3 = 0.33", 
+                sol: "Sin reposición. (Roja->Verde) = 2/4 * 1/3 = 2/12. (Verde->Roja) = 1/4 * 2/3 = 2/12. Suma: 4/12 = 1/3 = 0.333" 
+            },
+            { 
+                level: 'Difícil', 
+                text: "Fábrica con 3 máquinas. M1(1/2 de la prod.), M2(1/3), M3(1/6). Defectuosas: M1(1/10), M2(1/10), M3(1/5). ¿Probabilidad de que una pieza al azar sea DEFECTUOSA? Simplifica y decimal.", 
+                tree: [ 
+                    { keys: ["m1"], prob: 1/2, children: [ { keys: ["def", "mal"], prob: 1/10 }, { keys: ["ok", "bien", "bue"], prob: 9/10 } ] }, 
+                    { keys: ["m2"], prob: 1/3, children: [ { keys: ["def", "mal"], prob: 1/10 }, { keys: ["ok", "bien", "bue"], prob: 9/10 } ] },
+                    { keys: ["m3"], prob: 1/6, children: [ { keys: ["def", "mal"], prob: 1/5 }, { keys: ["ok", "bien", "bue"], prob: 4/5 } ] }
+                ], 
+                finalProb: 7/60, 
+                op: "1/20 + 1/30 + 1/30 = 7/60 = 0.11", 
+                sol: "Suma las tres ramas de defectuosas: (1/2 * 1/10) + (1/3 * 1/10) + (1/6 * 1/5) = 1/20 + 1/30 + 1/30 = 7/60 = 0.116" 
+            },
+            { 
+                level: 'Difícil', 
+                text: "Tiempo: Sol(1/2), Lluvia(1/3), Nieve(1/6). Si Sol, uso bici(4/5). Si Lluvia, bici(1/5). Si Nieve, bici(0). ¿Probabilidad de NO usar la bici? Fracción simplificada y decimal.", 
+                tree: [ 
+                    { keys: ["sol", "s"], prob: 1/2, children: [ { keys: ["bic", "b"], prob: 4/5 }, { keys: ["no", "otr"], prob: 1/5 } ] }, 
+                    { keys: ["lluv", "l"], prob: 1/3, children: [ { keys: ["bic", "b"], prob: 1/5 }, { keys: ["no", "otr"], prob: 4/5 } ] },
+                    { keys: ["niev", "n"], prob: 1/6, children: [ { keys: ["bic", "b"], prob: 0 }, { keys: ["no", "otr"], prob: 1 } ] }
+                ], 
+                finalProb: 8/15, 
+                op: "1/10 + 4/15 + 1/6 = 16/30 = 8/15 = 0.53", 
+                sol: "Ramas 'No bici': Sol(1/2 * 1/5 = 1/10) + Lluvia(1/3 * 4/5 = 4/15) + Nieve(1/6 * 1 = 1/6). Suma: 1/10 + 4/15 + 1/6 = 3/30 + 8/30 + 5/30 = 16/30 = 8/15 = 0.533" 
+            },
+            { 
+                level: 'Difícil', 
+                text: "Lanzamos 3 monedas equilibradas seguidas (haz el árbol completo de 3 niveles). ¿Probabilidad de sacar EXACTAMENTE 2 Caras? Simplifica y decimal.", 
+                tree: [ 
+                    { keys: ["c"], prob: 1/2, children: [ 
+                        { keys: ["c"], prob: 1/2, children: [ { keys: ["c"], prob: 1/2 }, { keys: ["x"], prob: 1/2 } ] }, 
+                        { keys: ["x"], prob: 1/2, children: [ { keys: ["c"], prob: 1/2 }, { keys: ["x"], prob: 1/2 } ] } 
+                    ] }, 
+                    { keys: ["x"], prob: 1/2, children: [ 
+                        { keys: ["c"], prob: 1/2, children: [ { keys: ["c"], prob: 1/2 }, { keys: ["x"], prob: 1/2 } ] }, 
+                        { keys: ["x"], prob: 1/2, children: [ { keys: ["c"], prob: 1/2 }, { keys: ["x"], prob: 1/2 } ] } 
+                    ] }
+                ], 
+                finalProb: 3/8, 
+                op: "1/8 + 1/8 + 1/8 = 3/8 = 0.375", 
+                sol: "Hay 3 caminos con exactamente dos caras: C-C-X (1/8), C-X-C (1/8), X-C-C (1/8). Suma = 3/8 = 0.375" 
+            },
+            { 
+                level: 'Difícil', 
+                text: "Caja: 2 Bolas Oro, 2 Plata, 2 Bronce. Extraes 2 SIN reposición. ¿Probabilidad de que sean IGUALES (Oro-Oro, Plata-Plata o Bronce-Bronce)?", 
+                tree: [ 
+                    { keys: ["or", "o"], prob: 2/6, children: [ { keys: ["or", "o"], prob: 1/5 }, { keys: ["pl", "p"], prob: 2/5 }, { keys: ["br", "b"], prob: 2/5 } ] }, 
+                    { keys: ["pl", "p"], prob: 2/6, children: [ { keys: ["or", "o"], prob: 2/5 }, { keys: ["pl", "p"], prob: 1/5 }, { keys: ["br", "b"], prob: 2/5 } ] },
+                    { keys: ["br", "b"], prob: 2/6, children: [ { keys: ["or", "o"], prob: 2/5 }, { keys: ["pl", "p"], prob: 2/5 }, { keys: ["br", "b"], prob: 1/5 } ] }
+                ], 
+                finalProb: 1/5, 
+                op: "2/30 + 2/30 + 2/30 = 6/30 = 1/5 = 0.2", 
+                sol: "O-O = 2/6 * 1/5 = 2/30. P-P = 2/30. B-B = 2/30. Suma = 6/30 = 1/5 = 0.2" 
+            },
+            { 
+                level: 'Difícil', 
+                text: "Tres puertas: A(1/3), B(1/3), C(1/3). Premio en A(1/2), B(1/4), C(1/5). ¿Probabilidad total de GANAR el premio? Fracción y decimal.", 
+                tree: [ 
+                    { keys: ["a"], prob: 1/3, children: [ { keys: ["gan", "pre", "si"], prob: 1/2 }, { keys: ["pier", "no"], prob: 1/2 } ] }, 
+                    { keys: ["b"], prob: 1/3, children: [ { keys: ["gan", "pre", "si"], prob: 1/4 }, { keys: ["pier", "no"], prob: 3/4 } ] },
+                    { keys: ["c"], prob: 1/3, children: [ { keys: ["gan", "pre", "si"], prob: 1/5 }, { keys: ["pier", "no"], prob: 4/5 } ] }
+                ], 
+                finalProb: 19/60, 
+                op: "1/6 + 1/12 + 1/15 = 10/60 + 5/60 + 4/60 = 19/60 = 0.31", 
+                sol: "Ganas por A (1/6), por B (1/12), por C (1/15). Suma con mcm(60): 10/60 + 5/60 + 4/60 = 19/60 = 0.316" 
+            }
+        ];
+        
+        let userTree = [];
+        let nodeIdCounter = 0;
+        let currentProblem = null;
+        let attempts = 3;
+        let isBlocked = false;
+
+        function startLevel(levelStr) {
+            document.querySelectorAll('.level-btn').forEach(b => {
+                b.classList.remove('bg-navy', 'text-white');
+                b.classList.add('bg-white', 'text-navy');
+            });
+            const activeBtn = Array.from(document.querySelectorAll('.level-btn')).find(b => b.innerText.includes(levelStr));
+            if(activeBtn) {
+                activeBtn.classList.remove('bg-white', 'text-navy');
+                activeBtn.classList.add('bg-navy', 'text-white');
+            }
+
+            const levelProblems = problems.filter(p => p.level === levelStr);
+            currentProblem = levelProblems[Math.floor(Math.random() * levelProblems.length)];
+
+            attempts = 3;
+            isBlocked = false;
+            userTree = []; 
+            userTree.push({ id: generateId(), text: '', prob: '', children: [] });
+            userTree.push({ id: generateId(), text: '', prob: '', children: [] });
+
+            document.getElementById('final-operation').value = "";
+            document.getElementById('welcome-msg').classList.add('hidden');
+            document.getElementById('workspace-container').classList.remove('hidden');
+            document.getElementById('solution-box').classList.add('hidden');
+            
+            document.getElementById('final-operation').disabled = false;
+            
+            document.getElementById('btn-comprobar').disabled = false;
+            document.getElementById('btn-comprobar').className = "w-full bg-gold text-navy py-4 rounded-xl font-black text-2xl hover:bg-navy hover:text-white border-4 border-navy transition-all shadow-lg uppercase tracking-wider";
+            document.getElementById('attempts-badge').classList.remove('hidden');
+
+            document.getElementById('problem-text').innerText = currentProblem.text;
+            document.getElementById('lbl-dificultad').innerText = "Nivel " + levelStr;
+            
+            updateAttemptsUI();
+            setAvatar(IMG_PENSATIVO, "¡Nuevo problema! Lee atentamente. Construye el diagrama completo, simplifica tu resultado al máximo y expresa en decimal.");
+            
+            renderTree();
+        }
+
+        function generateId() { return 'node_' + (nodeIdCounter++); }
+
+        function addRootBranch() {
+            if(isBlocked) return;
+            userTree.push({ id: generateId(), text: '', prob: '', children: [] });
+            renderTree();
+        }
+
+        function addChildBranch(parentId) {
+            if(isBlocked) return;
+            const parent = findNode(userTree, parentId);
+            if(parent) {
+                parent.children.push({ id: generateId(), text: '', prob: '', children: [] });
+                renderTree();
+            }
+        }
+
+        function removeNode(idToRemove) {
+            if(isBlocked) return;
+            userTree = userTree.filter(n => n.id !== idToRemove);
+            userTree.forEach(root => removeDeep(root, idToRemove));
+            renderTree();
+        }
+        
+        function removeDeep(node, idToRemove) {
+            node.children = node.children.filter(c => c.id !== idToRemove);
+            node.children.forEach(c => removeDeep(c, idToRemove));
+        }
+
+        function findNode(nodes, id) {
+            for(let n of nodes) {
+                if(n.id === id) return n;
+                let found = findNode(n.children, id);
+                if(found) return found;
+            }
+            return null;
+        }
+
+        function updateNode(id, field, value) {
+            if(isBlocked) return;
+            const node = findNode(userTree, id);
+            if(node) node[field] = value;
+        }
+
+        function renderTree() {
+            const container = document.getElementById('tree-render-area');
+            container.innerHTML = '';
+            
+            if(userTree.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 italic">No hay ramas. Añade una para empezar.</p>';
+                return;
+            }
+
+            const rootUl = document.createElement('ul');
+            rootUl.className = 'tree-ui';
+
+            const startLi = document.createElement('li');
+            const startCard = document.createElement('div');
+            startCard.className = 'bg-navy text-gold font-bold p-3 rounded-lg z-10 shrink-0 border-2 border-gold shadow-md';
+            startCard.innerText = 'Inicio';
+            startLi.appendChild(startCard);
+
+            const branchesUl = document.createElement('ul');
+            userTree.forEach(root => {
+                branchesUl.appendChild(createDOMNode(root));
+            });
+            startLi.appendChild(branchesUl);
+            rootUl.appendChild(startLi);
+
+            container.appendChild(rootUl);
+        }
+
+        function createDOMNode(nodeObj) {
+            const li = document.createElement('li');
+            
+            // Tarjeta del nodo
+            const card = document.createElement('div');
+            card.className = 'bg-white border-2 border-navy rounded-lg p-3 flex flex-col gap-2 shadow-sm z-10 w-40 shrink-0 relative';
+            
+            const inText = document.createElement('input');
+            inText.type = 'text';
+            inText.placeholder = 'Suceso';
+            inText.value = nodeObj.text;
+            inText.className = 'border-b-2 border-navy outline-none px-1 py-1 w-full font-bold text-navy text-center';
+            inText.disabled = isBlocked;
+            inText.oninput = (e) => updateNode(nodeObj.id, 'text', e.target.value);
+
+            const inProb = document.createElement('input');
+            inProb.type = 'text';
+            inProb.placeholder = 'Prob.';
+            inProb.value = nodeObj.prob;
+            inProb.className = 'border-b-2 border-navy outline-none px-1 py-1 w-full text-center font-bold text-navy';
+            inProb.disabled = isBlocked;
+            inProb.oninput = (e) => updateNode(nodeObj.id, 'prob', e.target.value);
+
+            const btnRow = document.createElement('div');
+            btnRow.className = 'flex justify-between w-full mt-1';
+            
+            const btnAdd = document.createElement('button');
+            btnAdd.innerHTML = '+ Rama';
+            btnAdd.className = 'bg-gold text-navy px-2 py-1 rounded font-bold text-xs hover:bg-navy hover:text-white transition';
+            btnAdd.disabled = isBlocked;
+            if(isBlocked) btnAdd.style.opacity = 0.5;
+            btnAdd.onclick = () => addChildBranch(nodeObj.id);
+
+            const btnDel = document.createElement('button');
+            btnDel.innerHTML = 'X';
+            btnDel.className = 'bg-red-500 text-white px-2 py-1 rounded font-black text-xs hover:bg-red-700 transition';
+            btnDel.disabled = isBlocked;
+            if(isBlocked) btnDel.style.opacity = 0.5;
+            btnDel.onclick = () => removeNode(nodeObj.id);
+
+            btnRow.appendChild(btnAdd);
+            btnRow.appendChild(btnDel);
+
+            card.appendChild(inText);
+            card.appendChild(inProb);
+            card.appendChild(btnRow);
+            
+            li.appendChild(card);
+
+            if(nodeObj.children.length > 0) {
+                const ul = document.createElement('ul');
+                nodeObj.children.forEach(child => {
+                    ul.appendChild(createDOMNode(child));
+                });
+                li.appendChild(ul);
+            }
+
+            return li;
+        }
+
+        function parseFraction(str) {
+            if(!str) return NaN;
+            let s = str.trim().replace(',', '.');
+            if (s.includes('/')) {
+                const p = s.split('/');
+                if(p.length !== 2) return NaN;
+                const num = parseFloat(p[0]);
+                const den = parseFloat(p[1]);
+                if(den === 0) return NaN;
+                return num / den;
+            }
+            return parseFloat(s);
+        }
+
+        function checkOperation(userInput, expectedProb) {
+            if (!userInput) return false;
+            let s = userInput.trim().replace(/,/g, '.');
+            let parts = s.split('=');
+            let lastPart = parts[parts.length - 1].trim();
+            let val = parseFraction(lastPart);
+            return Math.abs(val - expectedProb) < 0.01;
+        }
+
+        function matchNodes(userNodes, expectedNodes) {
+            if (!userNodes || !expectedNodes) return false;
+            if (userNodes.length !== expectedNodes.length) return false;
+
+            let matchedIndices = new Set();
+            for (let exp of expectedNodes) {
+                let foundMatchForExp = false;
+                for (let i = 0; i < userNodes.length; i++) {
+                    if (matchedIndices.has(i)) continue; 
+                    let usr = userNodes[i];
+                    let pUsr = parseFraction(usr.prob);
+                    
+                    if (isNaN(pUsr)) continue;
+
+                    let usrTextLower = usr.text.toLowerCase().trim();
+                    let textMatch = exp.keys.some(k => usrTextLower.includes(k));
+                    let probMatch = Math.abs(pUsr - exp.prob) <= 0.05;
+
+                    if (textMatch && probMatch) {
+                        let childrenMatch = true;
+                        let expHasChildren = exp.children && exp.children.length > 0;
+                        let usrHasChildren = usr.children && usr.children.length > 0;
+
+                        if (expHasChildren) {
+                            childrenMatch = matchNodes(usr.children, exp.children);
+                        } else if (usrHasChildren) {
+                            childrenMatch = false; 
+                        }
+
+                        if (childrenMatch) {
+                            matchedIndices.add(i);
+                            foundMatchForExp = true;
+                            break;
+                        }
+                    }
+                }
+                if (!foundMatchForExp) return false; 
+            }
+            return true;
+        }
+
+        function checkTree() {
+            if(isBlocked || !currentProblem) return;
+
+            let isTreeCorrect = matchNodes(userTree, currentProblem.tree);
+            let opInput = document.getElementById('final-operation').value;
+            let isOpCorrect = checkOperation(opInput, currentProblem.finalProb);
+
+            if (isTreeCorrect && isOpCorrect) {
+                isBlocked = true;
+                setAvatar(IMG_ALEGRE, "¡Excelente trabajo! Has construido el diagrama perfecto y el cálculo es correcto.");
+                lockUI();
+            } else {
+                attempts--;
+                updateAttemptsUI();
+
+                if (attempts === 2) {
+                    if(!isTreeCorrect) setAvatar(IMG_ESTRESADO, "¡Uy! Revisa las ramas del árbol o los nombres de los sucesos. Recuerda repasar tus apuntes si te bloqueas.");
+                    else setAvatar(IMG_CONSEJO, "El árbol está bien, pero revisa la Operación Final. Multiplica las probabilidades de la ruta correcta y sepáralo con un '='.");
+                } else if (attempts === 1) {
+                    setAvatar(IMG_CONSEJO, "Algo falla... Recuerda: sucesos mutuamente excluyentes en la misma rama suman 1. ¡Simplifica la fracción al máximo e incluye el decimal!");
+                } else {
+                    isBlocked = true;
+                    setAvatar(IMG_TRISTE, "Se acabaron los intentos. El árbol debía tener esta estructura. Fíjate en la solución de abajo y pruébalo con otro.");
+                    document.getElementById('solution-text').innerHTML = currentProblem.sol;
+                    document.getElementById('solution-op').innerHTML = "Operación: " + currentProblem.op;
+                    document.getElementById('solution-box').classList.remove('hidden');
+                    lockUI();
+                }
+            }
+        }
+
+        function setAvatar(imgName, msg) {
+            document.getElementById('teacher-avatar').src = imgName;
+            document.getElementById('teacher-bubble').innerHTML = msg;
+        }
+
+        function updateAttemptsUI() {
+            const badge = document.getElementById('attempts-badge');
+            document.getElementById('attempts-count').innerText = attempts;
+            
+            if (attempts === 3) {
+                badge.className = "absolute bottom-0 right-0 bg-navy text-white font-black rounded-full w-12 h-12 flex items-center justify-center border-4 border-gold shadow-md";
+            } else if (attempts === 2) {
+                badge.className = "absolute bottom-0 right-0 bg-gold text-navy font-black rounded-full w-12 h-12 flex items-center justify-center border-4 border-navy shadow-md";
+            } else {
+                badge.className = "absolute bottom-0 right-0 bg-red-600 text-white font-black rounded-full w-12 h-12 flex items-center justify-center border-4 border-white shadow-md";
+            }
+        }
+
+        function lockUI() {
+            renderTree();
+            document.getElementById('btn-add-root').style.opacity = '0.5';
+            document.getElementById('btn-add-root').disabled = true;
+            document.getElementById('final-operation').disabled = true;
+            
+            const btn = document.getElementById('btn-comprobar');
+            btn.disabled = true;
+            btn.className = "w-full bg-gray-400 text-gray-700 py-4 rounded-xl font-black text-2xl border-4 border-gray-500 uppercase tracking-wider opacity-60 cursor-not-allowed";
+        }
+    </script>
+</body>
+</html>
